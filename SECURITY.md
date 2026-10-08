@@ -1,8 +1,8 @@
-# Security Policy
+# Security policy
 
 ## Reporting a vulnerability
 
-Please report security issues privately through GitHub Security Advisories (<https://github.com/meshtastic/meshtasticd-proxmox/security/advisories/new>) rather than a public issue. We aim to acknowledge within a few days.
+Report security issues privately through GitHub Security Advisories (<https://github.com/meshtastic/meshtasticd-proxmox/security/advisories/new>) rather than a public issue. The maintainers aim to acknowledge a report within a few days.
 
 ## Threat model
 

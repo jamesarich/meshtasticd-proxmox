@@ -4,81 +4,136 @@
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![CLA assistant](https://cla-assistant.io/readme/badge/meshtastic/meshtasticd-proxmox)](https://cla-assistant.io/meshtastic/meshtasticd-proxmox)
 
-A Proxmox VE container template that runs [meshtasticd](https://meshtastic.org/docs/meshtasticd/) with no radio. Clone it, and the clones form a mesh with each other over UDP multicast on your LAN. Useful for testing apps, the CLI and integrations against real firmware without hardware. `add-radio.sh` puts a clone on air with a USB LoRa board.
+These scripts build a Proxmox VE container template that runs [meshtasticd](https://meshtastic.org/docs/meshtasticd/), the Meshtastic firmware for Linux. Each clone of the template is a node with a simulated radio, and the clones form a mesh with each other over UDP multicast, which reaches every node on the same network segment. That gives clients, the CLI, and integrations real firmware to test against without hardware. A clone can also go on air with a USB LoRa board.
 
-## Build
+## Requirements
+
+- Proxmox VE, with a root shell on the host. The host and the containers need internet access.
+- The [Meshtastic Python CLI](https://meshtastic.org/docs/software/python/cli/) on any machine on the LAN, to set each node's region (`pipx install meshtastic`).
+- For an on-air node, a CH341 USB LoRa board plugged into the host. See [Put a node on air](#put-a-node-on-air).
+
+## Build the template
 
 On the Proxmox host, as root:
 
-```sh
+```shell
 git clone https://github.com/meshtastic/meshtasticd-proxmox.git
 cd meshtasticd-proxmox
 ./build-template.sh
 ```
 
-This downloads the Debian 13 container image if needed, installs `meshtasticd` from the official [Meshtastic package repo](https://download.opensuse.org/repositories/network:/Meshtastic:/), configures it, wipes per-node identity and converts the container to a template. It takes a couple of minutes. The host and the container both need internet access.
+The script downloads the Debian 13 container image if needed, installs meshtasticd from the official [Meshtastic package repository](https://download.opensuse.org/repositories/network:/Meshtastic:/), configures it, wipes per-node identity, and converts the container to a template. It takes a few minutes and ends with `CT <ID> is a template with meshtasticd <VERSION>`.
 
 | Option | Default |
 | --- | --- |
-| `--id <ctid>` | next free ID |
-| `--storage <name>` | `local-lvm` |
-| `--template-storage <name>` | `local` |
-| `--bridge <name>` | `vmbr0` |
+| `--id <CTID>` | next free container ID |
+| `--storage <NAME>` | `local-lvm` |
+| `--template-storage <NAME>` | `local` |
+| `--bridge <NAME>` | `vmbr0` |
 | `--channel <beta\|alpha\|daily>` | `beta` |
-| `--hostname <name>` | `meshtasticd` |
+| `--hostname <NAME>` | `meshtasticd` |
 
-On a ZFS install pass `--storage local-zfs`. The container is unprivileged, 1 core, 512 MB RAM, 4 GB disk, DHCP on the bridge. If the build fails, the half-built container is left in place for inspection and the script prints the command to remove it.
+On a ZFS install, pass `--storage local-zfs`. The container is unprivileged, with one core, 512 MB of RAM, a 4 GB disk, and DHCP on the bridge. If the build fails, the half-built container stays in place for inspection and the script prints the command to remove it.
 
 ## Add a node
 
-```sh
-pct clone <template-id> <new-id> --full --hostname mesh-node1
-pct start <new-id>
-meshtastic --host <node-ip> --set lora.region US
-```
+Replace `<TEMPLATE_ID>` with the template's container ID, `<NEW_ID>` with a free container ID, and `<NODE_IP>` with the address the new container gets from DHCP (`pct exec <NEW_ID> -- ip -4 addr show eth0`).
 
-The node starts with no region set and sends nothing until it has one. Use your own region code. `meshtastic` is the [Python CLI](https://meshtastic.org/docs/software/python/cli/) (`pipx install meshtastic`), run from any machine on the LAN.
+1. Clone the template:
 
-Each clone gets a new MAC from Proxmox, and the node ID derives from it, so every clone is a distinct node with its own keys. Open the Meshtastic web client at `https://<node-ip>:9443` (meshtasticd generates a self-signed certificate on first start), or connect an app or the CLI to the node's IP on TCP port 4403. The template sets no root password; `pct enter <new-id>` gives a shell.
+   ```shell
+   pct clone <TEMPLATE_ID> <NEW_ID> --full --hostname mesh-node1
+   ```
+
+2. Start the node:
+
+   ```shell
+   pct start <NEW_ID>
+   ```
+
+3. Set the node's region to yours. The node sends nothing until its region is set.
+
+   ```shell
+   meshtastic --host <NODE_IP> --set lora.region US
+   ```
+
+4. Confirm it joined the mesh. After a minute, the other nodes appear in its node list:
+
+   ```shell
+   meshtastic --host <NODE_IP> --nodes
+   ```
+
+Each clone gets a new MAC address from Proxmox, and the node ID derives from it, so every clone is a distinct node with its own keys. The Meshtastic web client is at `https://<NODE_IP>:9443`; meshtasticd generates a self-signed certificate on first start. Clients and the CLI connect to TCP port 4403. The template sets no root password, so `pct enter <NEW_ID>` gives a shell.
 
 ## Put a node on air
 
-With a CH341 USB LoRa board (Meshtoad, MeshStick, uMesh, RAK19714) plugged into the Proxmox host, turn a clone into a radio node:
+With a CH341 USB LoRa board (Meshtoad, MeshStick, uMesh, or RAK19714) plugged into the host, turn a clone into an on-air node. Replace `<BOARD_FILE>` with the board's file name from `/etc/meshtasticd/available.d` in the container, and `<USB_SERIAL>` with the board's USB serial number.
 
-```sh
-pct clone <template-id> <new-id> --full --hostname mesh-radio
-./add-radio.sh <new-id> --board lora-usb-meshtoad-e22.yaml --serial <usb-serial>
-meshtastic --host <node-ip> --set lora.region US --set lora.modem_preset LONG_FAST
+1. Clone the template:
+
+   ```shell
+   pct clone <TEMPLATE_ID> <NEW_ID> --full --hostname mesh-radio
+   ```
+
+2. Attach the board:
+
+   ```shell
+   ./add-radio.sh <NEW_ID> --board <BOARD_FILE> --serial <USB_SERIAL>
+   ```
+
+3. Set the region and modem preset of the mesh you want to join:
+
+   ```shell
+   meshtastic --host <NODE_IP> --set lora.region US --set lora.modem_preset LONG_FAST
+   ```
+
+The default board file is `lora-usb-meshstick-1262.yaml`; a Meshtoad uses `lora-usb-meshtoad-e22.yaml`. On the host, `lsusb -d 1a86:5512 -v | grep iSerial` prints each board's serial number. The USB descriptor doesn't carry the board name, but meshtasticd logs it as `CH341 Product` once it opens the board. `--serial` is only needed when several boards are plugged in. Long Fast is the default modem preset. To change the board or serial, run the script again.
+
+The script adds a host udev rule that lets the container open CH341 boards (the same rule meshtasticd ships), and passes `/dev/bus/usb` through so the board survives a replug. It replaces `sim.yaml` with the board's configuration and a `node.yaml` that keeps the node ID and the web client. UDP stays off on an on-air node, so simulated nodes are never relayed on air.
+
+If the node hears no other nodes, check that the radio started:
+
+```shell
+pct exec <NEW_ID> -- journalctl -u meshtasticd -b
 ```
 
-`--board` is a file name from `/etc/meshtasticd/available.d` in the container; the default is `lora-usb-meshstick-1262.yaml`. `lsusb -d 1a86:5512 -v | grep iSerial` on the host prints each board's serial. The USB descriptor does not carry the board name; meshtasticd logs it as `CH341 Product` once it has opened the board, so if unsure, run with the default and check `pct exec <new-id> -- journalctl -u meshtasticd`. `--serial` is only needed when several boards are plugged in. Set the region and modem preset of the mesh you want to join; `LONG_FAST` is the default preset. Run the script again to change the board or serial.
+The log shows `CH341 Serial <USB_SERIAL>` and `sx1262 init success` once the board is open. If both lines are there, the likely cause is a region or modem preset that differs from the local mesh's; a node only hears nodes on the same modem preset. If they're missing, check the board file and that the board appears in `lsusb` on the host.
 
-The script adds a host udev rule that lets the container open CH341 boards (the same rule meshtasticd ships), passes `/dev/bus/usb` through so the board survives a replug, and replaces `sim.yaml` with the board config and a `node.yaml` that keeps the node ID and the web client. UDP stays off on a radio node, so simulated nodes are never bridged on air.
+Boards on native SPI (Serial Peripheral Interface, `/dev/spidev*`), such as Raspberry Pi HATs, aren't covered: x86 Proxmox hosts have no SPI bus.
 
-Boards on native SPI (`/dev/spidev*`, such as Raspberry Pi HATs) are not covered: x86 Proxmox hosts have no SPI bus.
+## Update meshtasticd
 
-## Update
+Nothing updates on its own. Each node keeps the Meshtastic package repository it was built from, and `update.sh` upgrades meshtasticd in place, then restarts the nodes whose version changed. With no arguments it updates every running container tagged `meshtasticd`:
 
-Nothing updates on its own. Each node keeps the Meshtastic package repo it was built from, and `update.sh` upgrades meshtasticd in place and restarts the nodes whose version changed:
-
-```sh
-./update.sh          # every running container tagged meshtasticd
-./update.sh 105 107  # just these
+```shell
+./update.sh
 ```
 
-The template is tagged `meshtasticd` and clones inherit the tag. The template keeps the version it was built with, so a new clone starts on that version until you run `update.sh` on it. To refresh the template itself, `pct destroy <template-id>` and run `./build-template.sh --id <template-id>` again; `--full` clones do not depend on it.
+To update specific containers, pass their IDs:
+
+```shell
+./update.sh <CTID> <CTID>
+```
+
+The template is tagged `meshtasticd` and clones inherit the tag. The template keeps the version it was built with, so a new clone starts on that version until `update.sh` runs on it. To refresh the template itself, run `pct destroy <TEMPLATE_ID>`, then `./build-template.sh --id <TEMPLATE_ID>`; `--full` clones don't depend on it.
+
+Keep every node on the same release line and update them together. meshtasticd 2.7.x uses multicast group `224.0.0.69` and 2.8 uses `239.0.0.69`, so nodes on different lines don't hear each other.
 
 ## How it works
 
-- `files/sim.yaml` selects the simulated radio, enables UDP broadcast, turns on the web server and takes the node ID from `eth0`. Nodes on the same LAN find each other on multicast port 4403.
-- `files/meshtasticd-wait-online.conf` holds `meshtasticd` for up to 30 s until `eth0` has an address. meshtasticd joins its multicast group once at startup, and in a container the network is reported online before the DHCP lease, so without this a node never hears the others.
+- `files/sim.yaml` selects the simulated radio, enables UDP broadcast, turns on the web server, and takes the node ID from `eth0`. Nodes on the same LAN find each other on multicast port 4403.
+- `files/meshtasticd-wait-online.conf` holds meshtasticd for up to 30 s until `eth0` has an address. meshtasticd joins its multicast group once at startup, and in a container the network is reported online before the DHCP lease, so without this wait a node never hears the others.
 - `files/ssh-regen-hostkeys.conf` gives each clone its own SSH host keys.
 
-## Notes
+Do not start meshtasticd with `--sim`. That flag skips `/etc/meshtasticd` and disables PKI encryption on the packets the node sends.
 
-- Keep every node on the same release line, and update them together. meshtasticd 2.7.x uses multicast group `224.0.0.69` and 2.8 uses `239.0.0.69`, so nodes on different lines do not hear each other.
-- Do not run `meshtasticd --sim`. It skips `/etc/meshtasticd` and disables PKI encryption on packets the node sends.
-- Tested on Proxmox VE 9.2 with meshtasticd 2.7.26 beta; `update.sh` upgrading a node from 2.7.26 beta to 2.8.1 alpha; the radio path with a Meshtoad on US `LONG_TURBO` against a RAK4631, in both directions, before the web server was added to radio nodes.
+## Tested versions
+
+| Component | Versions |
+| --- | --- |
+| Proxmox VE | 9.2 (tested here); 8.4.21 reported working by a Meshtastic admin |
+| meshtasticd | 2.7.26 beta; `update.sh` upgraded a node from 2.7.26 beta to 2.8.1 alpha |
+| On-air node | Meshtoad on US Long Turbo, heard both ways by a RAK4631; tested before radio nodes kept the web client |
 
 ## Contributing
 

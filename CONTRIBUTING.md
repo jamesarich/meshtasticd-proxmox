@@ -9,7 +9,7 @@ Thanks for helping improve meshtasticd-proxmox. See [AGENTS.md](AGENTS.md) for w
 
 ## Gates (run before every PR)
 
-```sh
+```shell
 shellcheck ./*.sh
 ```
 
