@@ -1,7 +1,8 @@
 # meshtasticd-proxmox
 
-[![CI](https://github.com/jamesarich/meshtasticd-proxmox/actions/workflows/ci.yml/badge.svg)](https://github.com/jamesarich/meshtasticd-proxmox/actions/workflows/ci.yml)
+[![CI](https://github.com/meshtastic/meshtasticd-proxmox/actions/workflows/ci.yml/badge.svg)](https://github.com/meshtastic/meshtasticd-proxmox/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![CLA assistant](https://cla-assistant.io/readme/badge/meshtastic/meshtasticd-proxmox)](https://cla-assistant.io/meshtastic/meshtasticd-proxmox)
 
 A Proxmox VE container template that runs [meshtasticd](https://meshtastic.org/docs/software/linux/installation/) with no radio. Clone it, and the clones form a mesh with each other over UDP multicast on your LAN. Useful for testing apps, the CLI and integrations against real firmware without hardware. `add-radio.sh` puts a clone on air with a USB LoRa board.
 
@@ -10,7 +11,7 @@ A Proxmox VE container template that runs [meshtasticd](https://meshtastic.org/d
 On the Proxmox host, as root:
 
 ```sh
-git clone https://github.com/jamesarich/meshtasticd-proxmox.git
+git clone https://github.com/meshtastic/meshtasticd-proxmox.git
 cd meshtasticd-proxmox
 ./build-template.sh
 ```

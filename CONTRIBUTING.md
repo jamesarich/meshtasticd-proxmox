@@ -2,6 +2,11 @@
 
 Thanks for helping improve meshtasticd-proxmox. See [AGENTS.md](AGENTS.md) for why the scripts are shaped the way they are.
 
+> [!IMPORTANT]
+> Before making any contributions, you must sign our Contributor License Agreement (CLA).
+> You can do this by visiting <https://cla-assistant.io/meshtastic/meshtasticd-proxmox>. Be sure to
+> use the GitHub account you will use to submit your contributions when signing.
+
 ## Gates (run before every PR)
 
 ```sh
