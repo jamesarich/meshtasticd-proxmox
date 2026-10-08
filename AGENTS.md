@@ -7,8 +7,8 @@ Working notes for meshtasticd-proxmox: two bash scripts that build a Proxmox VE 
 | file | does |
 | --- | --- |
 | `build-template.sh` | creates a Debian 13 CT, installs meshtasticd from OBS, pushes `files/`, wipes identity, converts it to a template |
-| `add-radio.sh` | on a clone: host udev rule, USB passthrough in the CT config, replaces `sim.yaml` with the board config plus a `node.yaml` (node ID from the MAC, UDP off) |
-| `files/sim.yaml` | SimRadio, `EnableUDP`, node ID from the `eth0` MAC |
+| `add-radio.sh` | on a clone: host udev rule, USB passthrough in the CT config, replaces `sim.yaml` with the board config plus a `node.yaml` (node ID from the MAC, web server, UDP off) |
+| `files/sim.yaml` | SimRadio, `EnableUDP`, web server on 9443, node ID from the `eth0` MAC |
 | `files/meshtasticd-wait-online.conf` | holds meshtasticd for up to 30 s until `eth0` has an IPv4 address |
 | `files/ssh-regen-hostkeys.conf` | generates any missing SSH host keys before sshd starts, so each clone gets its own |
 
@@ -23,6 +23,7 @@ Working notes for meshtasticd-proxmox: two bash scripts that build a Proxmox VE 
 - **`/etc/pve/lxc/<id>.conf` has sections.** Lines after a `[snapshot]` or `[pve:pending]` header belong to that section, so `add-radio.sh` inserts above the first header and writes through a temp file and rename, as Proxmox does.
 - **`pct push` creates files as container root.** Anything meshtasticd must own needs a `chown` inside the container.
 - **Radio nodes keep UDP off**, so simulated nodes are never relayed on air.
+- **`add-radio.sh` deletes `sim.yaml`**, so anything a radio node should keep from it (the node ID source, the web server) is repeated in the `node.yaml` it writes.
 
 ## Testing
 

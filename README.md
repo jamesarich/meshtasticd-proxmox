@@ -39,7 +39,7 @@ meshtastic --host <node-ip> --set lora.region US
 
 The node starts with no region set and sends nothing until it has one. Use your own region code. `meshtastic` is the [Python CLI](https://meshtastic.org/docs/software/python/cli/) (`pipx install meshtastic`), run from any machine on the LAN.
 
-Each clone gets a new MAC from Proxmox, and the node ID derives from it, so every clone is a distinct node with its own keys. Connect any client to the node's IP on TCP port 4403. The template sets no root password; `pct enter <new-id>` gives a shell.
+Each clone gets a new MAC from Proxmox, and the node ID derives from it, so every clone is a distinct node with its own keys. Open the Meshtastic web client at `https://<node-ip>:9443` (meshtasticd generates a self-signed certificate on first start), or connect an app or the CLI to the node's IP on TCP port 4403. The template sets no root password; `pct enter <new-id>` gives a shell.
 
 ## Put a node on air
 
@@ -69,7 +69,7 @@ The template keeps the version it was built with, so a new clone starts on that 
 
 ## How it works
 
-- `files/sim.yaml` selects the simulated radio, enables UDP broadcast and takes the node ID from `eth0`. Nodes on the same LAN find each other on multicast `224.0.0.69:4403`.
+- `files/sim.yaml` selects the simulated radio, enables UDP broadcast, turns on the web server and takes the node ID from `eth0`. Nodes on the same LAN find each other on multicast `224.0.0.69:4403`.
 - `files/meshtasticd-wait-online.conf` holds `meshtasticd` for up to 30 s until `eth0` has an address. meshtasticd joins its multicast group once at startup, and in a container the network is reported online before the DHCP lease, so without this a node never hears the others.
 - `files/ssh-regen-hostkeys.conf` gives each clone its own SSH host keys.
 

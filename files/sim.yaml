@@ -3,9 +3,12 @@
 #
 # No radio hardware: SimRadio, linked to other nodes over UDP multicast.
 # The node ID derives from the eth0 MAC, which Proxmox makes unique per clone.
+# The web server serves the bundled Meshtastic web client over HTTPS on 9443.
 Lora:
   Module: sim
 Config:
   EnableUDP: true
+Webserver:
+  Port: 9443
 General:
   MACAddressSource: eth0

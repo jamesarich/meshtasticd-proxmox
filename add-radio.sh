@@ -93,6 +93,8 @@ cat > "$CONFD/node.yaml" <<EOF
 # Node ID from the eth0 MAC, unique per clone. UDP stays off so simulated nodes are not bridged on air.
 General:
   MACAddressSource: eth0
+Webserver:
+  Port: 9443
 EOF
 chown meshtasticd:meshtasticd "$CONFD/radio.yaml" "$CONFD/node.yaml"
 systemctl restart meshtasticd
