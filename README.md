@@ -4,7 +4,7 @@
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![CLA assistant](https://cla-assistant.io/readme/badge/meshtastic/meshtasticd-proxmox)](https://cla-assistant.io/meshtastic/meshtasticd-proxmox)
 
-A Proxmox VE container template that runs [meshtasticd](https://meshtastic.org/docs/software/linux/installation/) with no radio. Clone it, and the clones form a mesh with each other over UDP multicast on your LAN. Useful for testing apps, the CLI and integrations against real firmware without hardware. `add-radio.sh` puts a clone on air with a USB LoRa board.
+A Proxmox VE container template that runs [meshtasticd](https://meshtastic.org/docs/meshtasticd/) with no radio. Clone it, and the clones form a mesh with each other over UDP multicast on your LAN. Useful for testing apps, the CLI and integrations against real firmware without hardware. `add-radio.sh` puts a clone on air with a USB LoRa board.
 
 ## Build
 
@@ -53,7 +53,7 @@ meshtastic --host <node-ip> --set lora.region US --set lora.modem_preset LONG_FA
 
 `--board` is a file name from `/etc/meshtasticd/available.d` in the container; the default is `lora-usb-meshstick-1262.yaml`. `lsusb -d 1a86:5512 -v | grep iSerial` on the host prints each board's serial. The USB descriptor does not carry the board name; meshtasticd logs it as `CH341 Product` once it has opened the board, so if unsure, run with the default and check `pct exec <new-id> -- journalctl -u meshtasticd`. `--serial` is only needed when several boards are plugged in. Set the region and modem preset of the mesh you want to join; `LONG_FAST` is the default preset. Run the script again to change the board or serial.
 
-The script adds a host udev rule that lets the container open CH341 boards (the same rule meshtasticd ships), passes `/dev/bus/usb` through so the board survives a replug, and replaces `sim.yaml` with the board config. UDP stays off on a radio node, so simulated nodes are never bridged on air.
+The script adds a host udev rule that lets the container open CH341 boards (the same rule meshtasticd ships), passes `/dev/bus/usb` through so the board survives a replug, and replaces `sim.yaml` with the board config and a `node.yaml` that keeps the node ID and the web client. UDP stays off on a radio node, so simulated nodes are never bridged on air.
 
 Boards on native SPI (`/dev/spidev*`, such as Raspberry Pi HATs) are not covered: x86 Proxmox hosts have no SPI bus.
 
@@ -78,7 +78,7 @@ The template is tagged `meshtasticd` and clones inherit the tag. The template ke
 
 - Keep every node on the same release line, and update them together. meshtasticd 2.7.x uses multicast group `224.0.0.69` and 2.8 uses `239.0.0.69`, so nodes on different lines do not hear each other.
 - Do not run `meshtasticd --sim`. It skips `/etc/meshtasticd` and disables PKI encryption on packets the node sends.
-- Tested on Proxmox VE 9.2 with meshtasticd 2.7.26 beta; the radio path with a Meshtoad on US `LONG_TURBO` against a RAK4631, in both directions.
+- Tested on Proxmox VE 9.2 with meshtasticd 2.7.26 beta; `update.sh` upgrading a node from 2.7.26 beta to 2.8.1 alpha; the radio path with a Meshtoad on US `LONG_TURBO` against a RAK4631, in both directions, before the web server was added to radio nodes.
 
 ## Contributing
 

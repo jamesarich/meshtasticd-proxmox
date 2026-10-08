@@ -20,6 +20,7 @@ Those are the only checks that run without a Proxmox host. A change to a script 
 1. `./build-template.sh --id <spare-id>` builds without errors.
 2. Two `--full` clones each bind `224.0.0.69:4403` on first boot (`pct exec <id> -- ss -lnu`; `239.0.0.69` on 2.8), and after `--set lora.region` they see each other in `meshtastic --host <ip> --nodes`.
 3. For `add-radio.sh`, a clone with a CH341 board is heard on air by another node on the same region and preset.
+4. For `update.sh`, a node with a newer version available (for example a clone pointed at the `alpha` channel) is upgraded, restarted and keeps its config, and a node that is already current is left running.
 
 Say in the PR which of these you ran, on which Proxmox VE and meshtasticd versions, and with which board. If you could not test on a host or on air, say so.
 
