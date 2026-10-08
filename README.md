@@ -57,6 +57,16 @@ The script adds a host udev rule that lets the container open CH341 boards (the 
 
 Boards on native SPI (`/dev/spidev*`, such as Raspberry Pi HATs) are not covered: x86 Proxmox hosts have no SPI bus.
 
+## Update
+
+Nothing updates on its own. Each node keeps the Meshtastic package repo it was built from, so update meshtasticd in place:
+
+```sh
+pct exec <id> -- sh -c 'apt-get update && apt-get install --only-upgrade -y meshtasticd && systemctl restart meshtasticd'
+```
+
+The template keeps the version it was built with, so a new clone starts on that version until you run the command above on it. To refresh the template itself, `pct destroy <template-id>` and run `./build-template.sh --id <template-id>` again; `--full` clones do not depend on it.
+
 ## How it works
 
 - `files/sim.yaml` selects the simulated radio, enables UDP broadcast and takes the node ID from `eth0`. Nodes on the same LAN find each other on multicast `224.0.0.69:4403`.
