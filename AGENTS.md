@@ -6,7 +6,8 @@ Working notes for meshtasticd-proxmox: two bash scripts that build a Proxmox VE 
 
 | file | does |
 | --- | --- |
-| `build-template.sh` | creates a Debian 13 CT, installs meshtasticd from OBS, pushes `files/`, wipes identity, converts it to a template |
+| `build-template.sh` | creates a Debian 13 CT tagged `meshtasticd`, installs meshtasticd from OBS (deb822 `.sources`), pushes `files/`, wipes identity, converts it to a template |
+| `update.sh` | upgrades meshtasticd in place on the given CTs, or every running CT tagged `meshtasticd`, and restarts the ones that changed |
 | `add-radio.sh` | on a clone: host udev rule, USB passthrough in the CT config, replaces `sim.yaml` with the board config plus a `node.yaml` (node ID from the MAC, web server, UDP off) |
 | `files/sim.yaml` | SimRadio, `EnableUDP`, web server on 9443, node ID from the `eth0` MAC |
 | `files/meshtasticd-wait-online.conf` | holds meshtasticd for up to 30 s until `eth0` has an IPv4 address |
@@ -22,6 +23,7 @@ Working notes for meshtasticd-proxmox: two bash scripts that build a Proxmox VE 
 - **A template is not changed in place.** Change the scripts and rebuild.
 - **`/etc/pve/lxc/<id>.conf` has sections.** Lines after a `[snapshot]` or `[pve:pending]` header belong to that section, so `add-radio.sh` inserts above the first header and writes through a temp file and rename, as Proxmox does.
 - **`pct push` creates files as container root.** Anything meshtasticd must own needs a `chown` inside the container.
+- **Upgrades run noninteractive with `--force-confold`.** A dpkg conffile prompt has no terminal under `pct exec` and would hang the update.
 - **Radio nodes keep UDP off**, so simulated nodes are never relayed on air.
 - **`add-radio.sh` deletes `sim.yaml`**, so anything a radio node should keep from it (the node ID source, the web server) is repeated in the `node.yaml` it writes.
 
@@ -31,6 +33,6 @@ There are no unit tests: the scripts drive `pct`, `pveam` and apt on a real host
 
 ## Gotchas
 
-- Released 2.7.x binds multicast `224.0.0.69`; firmware `develop` uses `239.0.0.69`. Nodes on different lines do not hear each other.
+- meshtasticd 2.7.x binds multicast `224.0.0.69`; 2.8 (alpha and daily builds today) binds `239.0.0.69`. Nodes on different lines do not hear each other, so an upgrade across that line moves a node off the mesh until the rest follow.
 - The package enables and starts `meshtasticd.service` at install with only its default `config.yaml`, and the unit restarts on failure every 3 s; `build-template.sh` stops it right after install and enables it again once configured.
 - `lsusb -v` shows a CH341 board's serial but not its name. meshtasticd logs the name as `CH341 Product` once it opens the board.

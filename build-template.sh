@@ -79,7 +79,7 @@ pct create "$CTID" "$TEMPLATE_STORAGE:vztmpl/$IMAGE" \
     --rootfs "$STORAGE:4" \
     --net0 "name=eth0,bridge=$BRIDGE,ip=dhcp,type=veth" \
     --unprivileged 1 --features nesting=1 \
-    --ostype debian --onboot 0 \
+    --ostype debian --onboot 0 --tags meshtasticd \
     --description "meshtasticd ($CHANNEL) radio-less node template. Clone, start, then set the region: meshtastic --host <ip> --set lora.region <REGION>"
 CREATED=1
 pct start "$CTID"
@@ -103,7 +103,12 @@ apt-get install -y -qq curl gpg ca-certificates >/dev/null
 REPO="https://download.opensuse.org/repositories/network:/Meshtastic:/$CHANNEL/Debian_13"
 install -d -m 0755 /etc/apt/keyrings
 curl -fsSL "$REPO/Release.key" | gpg --dearmor -o /etc/apt/keyrings/meshtastic.gpg
-echo "deb [signed-by=/etc/apt/keyrings/meshtastic.gpg] $REPO/ /" > /etc/apt/sources.list.d/meshtastic.list
+cat > /etc/apt/sources.list.d/meshtastic.sources <<EOF
+Types: deb
+URIs: $REPO/
+Suites: ./
+Signed-By: /etc/apt/keyrings/meshtastic.gpg
+EOF
 apt-get update -qq
 apt-get install -y -qq meshtasticd >/dev/null
 systemctl stop meshtasticd

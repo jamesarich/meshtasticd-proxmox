@@ -59,23 +59,24 @@ Boards on native SPI (`/dev/spidev*`, such as Raspberry Pi HATs) are not covered
 
 ## Update
 
-Nothing updates on its own. Each node keeps the Meshtastic package repo it was built from, so update meshtasticd in place:
+Nothing updates on its own. Each node keeps the Meshtastic package repo it was built from, and `update.sh` upgrades meshtasticd in place and restarts the nodes whose version changed:
 
 ```sh
-pct exec <id> -- sh -c 'apt-get update && apt-get install --only-upgrade -y meshtasticd && systemctl restart meshtasticd'
+./update.sh          # every running container tagged meshtasticd
+./update.sh 105 107  # just these
 ```
 
-The template keeps the version it was built with, so a new clone starts on that version until you run the command above on it. To refresh the template itself, `pct destroy <template-id>` and run `./build-template.sh --id <template-id>` again; `--full` clones do not depend on it.
+The template is tagged `meshtasticd` and clones inherit the tag. The template keeps the version it was built with, so a new clone starts on that version until you run `update.sh` on it. To refresh the template itself, `pct destroy <template-id>` and run `./build-template.sh --id <template-id>` again; `--full` clones do not depend on it.
 
 ## How it works
 
-- `files/sim.yaml` selects the simulated radio, enables UDP broadcast, turns on the web server and takes the node ID from `eth0`. Nodes on the same LAN find each other on multicast `224.0.0.69:4403`.
+- `files/sim.yaml` selects the simulated radio, enables UDP broadcast, turns on the web server and takes the node ID from `eth0`. Nodes on the same LAN find each other on multicast port 4403.
 - `files/meshtasticd-wait-online.conf` holds `meshtasticd` for up to 30 s until `eth0` has an address. meshtasticd joins its multicast group once at startup, and in a container the network is reported online before the DHCP lease, so without this a node never hears the others.
 - `files/ssh-regen-hostkeys.conf` gives each clone its own SSH host keys.
 
 ## Notes
 
-- Keep every node on the same release. Released 2.7.x uses multicast group `224.0.0.69`, while firmware `develop` uses `239.0.0.69`, so they do not hear each other.
+- Keep every node on the same release line, and update them together. meshtasticd 2.7.x uses multicast group `224.0.0.69` and 2.8 uses `239.0.0.69`, so nodes on different lines do not hear each other.
 - Do not run `meshtasticd --sim`. It skips `/etc/meshtasticd` and disables PKI encryption on packets the node sends.
 - Tested on Proxmox VE 9.2 with meshtasticd 2.7.26 beta; the radio path with a Meshtoad on US `LONG_TURBO` against a RAK4631, in both directions.
 
