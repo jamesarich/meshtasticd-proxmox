@@ -1,0 +1,44 @@
+name: Bug report
+description: A script or a node does not behave as documented.
+labels: ["bug"]
+body:
+  - type: input
+    id: pve
+    attributes:
+      label: Proxmox VE version
+      description: From `pveversion`
+      placeholder: "pve-manager/9.2.21"
+    validations:
+      required: true
+  - type: input
+    id: meshtasticd
+    attributes:
+      label: meshtasticd version and channel
+      description: From `pct exec <id> -- dpkg-query -W meshtasticd`, and the `--channel` you built with
+      placeholder: "2.7.26.61~obs54e0d8d~beta, beta"
+    validations:
+      required: true
+  - type: input
+    id: board
+    attributes:
+      label: Radio board
+      description: The `--board` file, or "none" for a simulated node
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Commands to reproduce
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Script output, and `pct exec <id> -- journalctl -u meshtasticd -b`. Redact channel keys.
+      render: shell

@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: Meshtastic contributors
+# SPDX-License-Identifier: GPL-3.0-only
+#
+# No radio hardware: SimRadio, linked to other nodes over UDP multicast.
+# The node ID derives from the eth0 MAC, which Proxmox makes unique per clone.
+Lora:
+  Module: sim
+Config:
+  EnableUDP: true
+General:
+  MACAddressSource: eth0
